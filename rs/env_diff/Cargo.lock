@@ -108,6 +108,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "clap",
+ "tools_core",
 ]
 
 [[package]]
@@ -149,6 +150,13 @@ dependencies = [
  "proc-macro2",
  "quote",
  "unicode-ident",
+]
+
+[[package]]
+name = "tools_core"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
 ]
 
 [[package]]

@@ -1,9 +1,8 @@
 use clap::Parser;
 use std::collections::HashSet;
-use std::fmt::Display;
-use std::hash::Hash;
 use std::process::Command;
 use std::str;
+use tools_core::{get_tools_core_version, PackageInfo};
 
 const FIXED_LENGTH: usize = 20;
 
@@ -24,79 +23,6 @@ struct Args {
 
     #[arg(long, short, default_value = "false", help = "format output")]
     format: bool,
-}
-
-#[derive(Ord)]
-struct PackageInfo {
-    name: String,
-    version: String,
-    build: String,
-    channel: String,
-    env_name: String,
-}
-
-impl PartialEq for PackageInfo {
-    fn eq(&self, other: &Self) -> bool {
-        self.name == other.name
-            && self.version == other.version
-            && self.build == other.build
-            && self.channel == other.channel
-    }
-}
-
-impl Display for PackageInfo {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "(name {}, version {},build {}, channel {},env_name {})",
-            self.name, self.version, self.build, self.channel, self.env_name
-        )
-    }
-}
-
-impl Eq for PackageInfo {}
-
-impl Hash for PackageInfo {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.name.hash(state);
-        self.version.hash(state);
-        self.build.hash(state);
-        self.channel.hash(state);
-        self.env_name.hash(state);
-    }
-}
-
-impl PartialOrd for PackageInfo {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.name.cmp(&other.name))
-    }
-}
-
-impl PackageInfo {
-    fn from_str(s: &str, env_name: String) -> anyhow::Result<Self> {
-        let mut res = s.split(" ").collect::<Vec<_>>();
-        res.retain(|&x| x != "");
-        if res.len() == 3 {
-            return anyhow::Ok(PackageInfo {
-                name: res[0].to_string(),
-                version: res[1].to_string(),
-                build: res[2].to_string(),
-                channel: "".to_string(),
-                env_name,
-            });
-        }
-        if res.len() == 4 {
-            return anyhow::Ok(PackageInfo {
-                name: res[0].to_string(),
-                version: res[1].to_string(),
-                build: res[2].to_string(),
-                channel: res[3].to_string(),
-                env_name,
-            });
-        }
-
-        anyhow::bail!("cannot convert")
-    }
 }
 
 fn get_command_output(env: &String) -> anyhow::Result<String> {
@@ -151,9 +77,10 @@ fn main() {
 ███████╗██║ ╚████║ ╚████╔╝     ██████╔╝██║██║     ██║     
 ╚══════╝╚═╝  ╚═══╝  ╚═══╝      ╚═════╝ ╚═╝╚═╝     ╚═╝     
                                                                   
-Version {}
+Version {}, core version {}
     ",
-        env!("CARGO_PKG_VERSION")
+        env!("CARGO_PKG_VERSION"),
+        get_tools_core_version()
     );
 
     if args.envs.len() != 2 {
