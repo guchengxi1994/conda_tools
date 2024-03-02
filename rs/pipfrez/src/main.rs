@@ -1,4 +1,5 @@
 use std::{
+    collections::HashSet,
     fs::File,
     io::{self, BufRead},
 };
@@ -6,7 +7,7 @@ use std::{
 use clap::Parser;
 use once_cell::sync::Lazy;
 use regex::Regex;
-use tools_core::get_tools_core_version;
+use tools_core::{get_package_info_by_env_name, get_tools_core_version, PackageInfo};
 use walkdir::WalkDir;
 
 const IMPORT_REGEX: Lazy<Regex> =
@@ -78,6 +79,8 @@ Version {}, core version {}
     );
 
     let args = Args::parse();
+
+    let set: HashSet<PackageInfo> = get_package_info_by_env_name(args.conda_name.to_string())?;
 
     for entry in WalkDir::new(/*for test*/ r"D:\github_repo\object_gan")
         .into_iter()

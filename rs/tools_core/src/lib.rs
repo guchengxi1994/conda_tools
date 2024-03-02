@@ -1,5 +1,5 @@
 use core::hash::Hash;
-use std::fmt::Display;
+use std::{collections::HashSet, fmt::Display, process::Command};
 
 pub fn get_tools_core_version() -> String {
     env!("CARGO_PKG_VERSION").to_owned()
@@ -76,4 +76,34 @@ impl PackageInfo {
 
         anyhow::bail!("cannot convert")
     }
+}
+
+fn get_command_output(env: &String) -> anyhow::Result<String> {
+    let conda_package_list = Command::new("conda").args(["list", "-n", env]).output()?;
+    anyhow::Ok(std::str::from_utf8(&conda_package_list.stdout)?.to_owned())
+}
+
+pub fn get_package_info_by_env_name(env_name: String) -> anyhow::Result<HashSet<PackageInfo>> {
+    let mut pip_set: HashSet<PackageInfo> = HashSet::new();
+    let output = get_command_output(&env_name)?;
+
+    let results;
+    if cfg!(windows) {
+        results = output.split("\r\n");
+    } else {
+        results = output.split("\n");
+    }
+
+    for i in results.into_iter() {
+        if i.starts_with("#") {
+            continue;
+        }
+
+        let pi = PackageInfo::from_str(i, env_name.clone());
+        if let Ok(_pi) = pi {
+            pip_set.insert(_pi);
+        }
+    }
+
+    anyhow::Ok(pip_set)
 }

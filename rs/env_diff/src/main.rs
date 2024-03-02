@@ -1,8 +1,7 @@
 use clap::Parser;
 use std::collections::HashSet;
-use std::process::Command;
 use std::str;
-use tools_core::{get_tools_core_version, PackageInfo};
+use tools_core::{get_package_info_by_env_name, get_tools_core_version, PackageInfo};
 
 const FIXED_LENGTH: usize = 20;
 
@@ -23,11 +22,6 @@ struct Args {
 
     #[arg(long, short, default_value = "false", help = "format output")]
     format: bool,
-}
-
-fn get_command_output(env: &String) -> anyhow::Result<String> {
-    let conda_package_list = Command::new("conda").args(["list", "-n", env]).output()?;
-    anyhow::Ok(str::from_utf8(&conda_package_list.stdout)?.to_owned())
 }
 
 fn padding_string(s: &str) -> String {
@@ -64,7 +58,7 @@ fn format_output(p: &PackageInfo, first: bool) {
     }
 }
 
-fn main() {
+fn main() -> anyhow::Result<()> {
     let args = Args::parse();
 
     println!(
@@ -88,65 +82,11 @@ Version {}, core version {}
         std::process::exit(1);
     }
 
-    let mut first_set: HashSet<PackageInfo> = HashSet::new();
+    let first_set: HashSet<PackageInfo> =
+        get_package_info_by_env_name(args.envs.first().unwrap().to_string())?;
 
-    if let Some(first) = args.envs.first() {
-        let first_pip_list = get_command_output(first);
-        match first_pip_list {
-            Ok(_s) => {
-                let results;
-                if cfg!(windows) {
-                    results = _s.split("\r\n");
-                } else {
-                    results = _s.split("\n");
-                }
-
-                for i in results.into_iter() {
-                    if i.starts_with("#") {
-                        continue;
-                    }
-
-                    let pi = PackageInfo::from_str(i, first.clone());
-                    if let Ok(_pi) = pi {
-                        first_set.insert(_pi);
-                    }
-                }
-            }
-            Err(_) => {
-                std::process::exit(1);
-            }
-        }
-    }
-
-    let mut second_set: HashSet<PackageInfo> = HashSet::new();
-
-    if let Some(second) = args.envs.last() {
-        let second_pip_list = get_command_output(second);
-        match second_pip_list {
-            Ok(_s) => {
-                let results;
-                if cfg!(windows) {
-                    results = _s.split("\r\n");
-                } else {
-                    results = _s.split("\n");
-                }
-
-                for i in results.into_iter() {
-                    if i.starts_with("#") {
-                        continue;
-                    }
-
-                    let pi = PackageInfo::from_str(i, second.clone());
-                    if let Ok(_pi) = pi {
-                        second_set.insert(_pi);
-                    }
-                }
-            }
-            Err(_) => {
-                std::process::exit(1);
-            }
-        }
-    }
+    let second_set: HashSet<PackageInfo> =
+        get_package_info_by_env_name(args.envs.last().unwrap().to_string())?;
 
     if args.format {
         println!(
@@ -216,4 +156,6 @@ Version {}, core version {}
             }
         }
     }
+
+    anyhow::Ok(())
 }
